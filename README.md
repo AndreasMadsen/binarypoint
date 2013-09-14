@@ -25,6 +25,8 @@ at such.
 * Relay close event on the underlying socket.
 * Relay error events on the underlying socket.
 
+**Example:**
+
 ```JavaScript
 var binarypoint = require('binarypoint');
 var socket = net.connect(5000);
