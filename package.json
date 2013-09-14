@@ -1,0 +1,33 @@
+{
+  "name": "binarypoint",
+  "description": "Split a binary duplex stream up at its null bytes",
+  "version": "0.2.0",
+  "author": "Andreas Madsen <amwebdk@gmail.com>",
+  "main": "./binarypoint.js",
+  "scripts": {
+    "test": "tap test.js"
+  },
+  "repository" : {
+    "type": "git",
+    "url": "git://github.com/AndreasMadsen/binarypoint.git"
+  },
+  "keywords": [
+    "binary",
+    "null",
+    "byte",
+    "message",
+    "split",
+    "stream"
+  ],
+  "devDependencies": {
+    "tap": "0.4.x",
+    "async": "0.2.x",
+    "endpoint": "0.4.x",
+    "startpoint": "0.3.x"
+  },
+  "license": "MIT",
+  "engines": {
+    "node": "0.10",
+    "npm": "1"
+  }
+}
