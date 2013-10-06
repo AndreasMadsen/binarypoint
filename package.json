@@ -1,7 +1,7 @@
 {
   "name": "binarypoint",
-  "description": "Split a binary duplex stream up at its null bytes",
-  "version": "0.2.0",
+  "description": "Write and read seperated binary messages",
+  "version": "0.3.0",
   "author": "Andreas Madsen <amwebdk@gmail.com>",
   "main": "./binarypoint.js",
   "scripts": {
@@ -13,7 +13,6 @@
   },
   "keywords": [
     "binary",
-    "null",
     "byte",
     "message",
     "split",

@@ -16,6 +16,8 @@ function BinaryPoint(socket) {
   this._socket = socket;
 
   // Handle data chunks
+  this._awaitSize = true;
+  this._messageSize = 0;
   this._buffer = new Buffer(0);
   this._socket.on('data', function (chunk) { self._data(chunk); });
   this._socket.once('end', function (chunk) { self._end(); });
@@ -31,43 +33,55 @@ module.exports = BinaryPoint;
 util.inherits(BinaryPoint, stream.Duplex);
 
 BinaryPoint.prototype._data = function (chunk) {
-  var start = 0;
-
   // Optimization:
   // * Since Buffer.concat copy the buffer in any case we skip that if there
   //   is no reason to copy.
-  // * Also don't scan the bytes there has already been scaned
   if (this._buffer.length !== 0) {
-    start = this._buffer.length;
     chunk = Buffer.concat([this._buffer, chunk]);
   }
 
   var total = chunk.length;
-  var nopause = true;
   var lastindex = 0;
-  for (var i = start; i < total; i++) {
-    if (chunk[i] !== 0x00) continue;
+  var nextindex = 0;
+  var more = true;
+  while(true) {
+    // Should look for size infomation
+    if (this._awaitSize === true) {
+      nextindex = lastindex + 2;
 
-    // To make things simple just push until the buffer is empty and let
-    // node buffer the messages internally. The bytes will in the memory
-    // somewhere anyway.
-    nopause = this.push(chunk.slice(lastindex, i));
-    lastindex = i + 1;
+      // Size information found, so read it and offset the index
+      if (total >= nextindex) {
+        this._messageSize = chunk.readUInt16BE(lastindex);
+        this._awaitSize = false;
+        lastindex = nextindex;
+      } else {
+        break;
+      }
+    }
+
+    // Slice out message if the size criteria was met
+    nextindex = lastindex + this._messageSize;
+    if (total >= nextindex) {
+      more = this.push(chunk.slice(lastindex, nextindex));
+      this._awaitSize = true;
+      lastindex = nextindex;
+    } else {
+      break;
+    }
   }
 
-  // At last slice the remaining part of the buffer and keep only that
+  // At last cleanup the buffer, by sliceing out the consumed part
   this._buffer = chunk.slice(lastindex);
 
   // Also pause the stream if it makes sence, so we don't consume more bytes
   // than we ought to.
-  if (!nopause) this._socket.pause();
+  if (!more) this._socket.pause();
 };
 
 BinaryPoint.prototype._end = function () {
-  // if the buffer contains something, thread that as a message and flush
-  // the buffer
+  // if the buffer contains something, the the size criteria wasn't met and
+  // the message must be incomplete. So just clear the buffer.
   if (this._buffer.length !== 0) {
-    this.push(this._buffer);
     this._buffer = new Buffer(0);
   }
 
@@ -81,21 +95,25 @@ BinaryPoint.prototype._read = function () {
   this._socket.resume();
 };
 
-var NULLBYTE_BUFFER = new Buffer([0x00]);
-
 BinaryPoint.prototype._write = function (binary, encoding, done) {
   // Optimization:
-  // * When running in objectMode, encoding is not always zero, this also allows
+  // * When running in objectMode, encoding is not always binary, this also allows
   //   for blazing fast ascii writing, if the user chose to care about that.
-  this._socket.write(binary, encoding);
+  if (Buffer.isBuffer(binary) === false) {
+    binary = new Buffer(binary, encoding);
+  }
+
+  // Write the size information
+  var sizeBuffer = new Buffer(2);
+      sizeBuffer.writeUInt16BE(binary.length, 0);
+  this._socket.write(sizeBuffer);
 
   // Optimization:
   // * Yes, the first write might have requested a pause, but again we might
-  //   as well flush 0x00 now and let node buffer it. This way we skip an early
-  //   check.
+  //   as well flush the message now and let node buffer it. This way we skip a
+  //   complex state check.
   // * But do wait for the drain event in cause no more should be written.
-  // * Always just fast ascii writing for the 0x00 buffer.
-  if (this._socket.write(NULLBYTE_BUFFER, 'ascii')) {
+  if (this._socket.write(binary)) {
     done(null);
   } else {
     this._socket.once('drain', done);

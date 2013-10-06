@@ -1,6 +1,6 @@
 #binarypoint
 
-> Split a binary duplex stream up at its null bytes
+> Write and read seperated binary messages
 
 ## Installation
 
@@ -11,8 +11,11 @@ npm install binarypoint
 ## Documentation
 
 This is a duplex stream there wraps a binary duplex stream. The `binarypoint`
-then splits the binary data up at its null bytes (`0x00`). It also adds the
-null byte when you write to it.
+then splits and joins the binary data up intro buffers, by adding a `UInt16BE`
+chunk to the output and the consume that chunk on input.
+
+**Dude to the limitations of an `UInt16BE` you can not write messages larger
+than 64 KB**.
 
 In reality this is an object stream, since the buffer objects don't get
 concatenated, but it acts very much like a buffer stream and you can use it
@@ -21,7 +24,7 @@ at such.
 **Features:**
 
 * The module supports backpresure on the underlying socket.
-* Allows for smart encodeing, by not pre converting the strings to buffers.
+* Allows for fast writing, by propagating encodeing details.
 * Relay close event on the underlying socket.
 * Relay error events on the underlying socket.
 
@@ -29,19 +32,18 @@ at such.
 
 ```JavaScript
 var binarypoint = require('binarypoint');
-var socket = net.connect(5000);
+var socket = net.connect(5000); // Connect to an echo server
 
 var spliter = binarypoint(socket);
 
 spliter.once('readable', function () {
-  // socket rescived two messages as "hallo\0world\0".
-  // those messages got split up. Note that if the
-  // socket ended, the last null byte is optional.
-  spliter.read() // <Buffer 68 61 6c 6c 6f>
-  spliter.read() // <Buffer 77 6f 72 6c 64>
+  // socket rescived two messages as "\0x00\0x05hallo\0x00\0x05Again".
+  // those messages got split up.
+  spliter.read() // <Buffer 68 61 6c 6c 6f> = 'hallo'
+  spliter.read() // <Buffer 77 6f 72 6c 64> = 'world'
 });
 
-// Writes: "hallo\0Again\0".
+// Writes: "\0x00\0x05hallo\0x00\0x05Again".
 spliter.write('hallo');
 spliter.write('again');
 spliter.end();
