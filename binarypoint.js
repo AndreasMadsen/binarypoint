@@ -99,13 +99,11 @@ BinaryPoint.prototype._write = function (binary, encoding, done) {
   // Optimization:
   // * When running in objectMode, encoding is not always binary, this also allows
   //   for blazing fast ascii writing, if the user chose to care about that.
-  if (Buffer.isBuffer(binary) === false) {
-    binary = new Buffer(binary, encoding);
-  }
+  var size = Buffer.isBuffer(binary) ? binary.length : Buffer.byteLength(binary, encoding);
 
   // Write the size information
   var sizeBuffer = new Buffer(2);
-      sizeBuffer.writeUInt16BE(binary.length, 0);
+      sizeBuffer.writeUInt16BE(size, 0);
   this._socket.write(sizeBuffer);
 
   // Optimization:
@@ -113,7 +111,7 @@ BinaryPoint.prototype._write = function (binary, encoding, done) {
   //   as well flush the message now and let node buffer it. This way we skip a
   //   complex state check.
   // * But do wait for the drain event in cause no more should be written.
-  if (this._socket.write(binary)) {
+  if (this._socket.write(binary, encoding)) {
     done(null);
   } else {
     this._socket.once('drain', done);
