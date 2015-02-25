@@ -84,7 +84,7 @@ test('write call gets relayed to socket', function (t) {
       spliter.pipe(endpoint({objectMode: true}, done));
     }
   }, function (err, result) {
-    t.equal(err, null);
+    t.equal(err || null, null);
     t.equal(result.bytes.toString(), sizeBuffer(5) + 'Hallo' + sizeBuffer(5) + 'World');
     t.equal(result.messages[0].toString(), 'Hallo');
     t.equal(result.messages[1].toString(), 'World');

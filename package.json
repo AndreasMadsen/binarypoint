@@ -1,7 +1,7 @@
 {
   "name": "binarypoint",
   "description": "Write and read seperated binary messages",
-  "version": "0.3.1",
+  "version": "0.3.2",
   "author": "Andreas Madsen <amwebdk@gmail.com>",
   "main": "./binarypoint.js",
   "scripts": {
@@ -19,14 +19,10 @@
     "stream"
   ],
   "devDependencies": {
-    "tap": "0.4.x",
-    "async": "0.2.x",
+    "tap": "0.6.x",
+    "async": "0.9.x",
     "endpoint": "0.4.x",
     "startpoint": "0.3.x"
   },
-  "license": "MIT",
-  "engines": {
-    "node": "0.10",
-    "npm": "1"
-  }
+  "license": "MIT"
 }
